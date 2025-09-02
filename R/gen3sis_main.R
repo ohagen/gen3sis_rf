@@ -42,7 +42,6 @@
 #' @importFrom Rcpp sourceCpp
 #' @import Matrix
 "_PACKAGE"
-NULL
 
 
 #' Run a simulation in gen3sis and return a summary object possibly saving outputs and plots to the output folder 

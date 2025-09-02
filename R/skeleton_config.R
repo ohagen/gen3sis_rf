@@ -1,8 +1,16 @@
 # Copyright (c) 2020, ETH Zurich
 
 # DO NOT USE ' IN THIS CONFIG
+
+# empty skeleton config
+# internal helper: returns a single compiled string used by write_config_skeleton()
+#' create a skeleton config string from scratch
+#' @details create a skeleton config string from scratch
+#'
+#' @return a string containing the skeleton config
+#' @noRd
 skeleton_config <- function(){
-paste0(c('
+ paste0(c('
 #--------------------------------------#
 ####            METADATA            ####
 #--------------------------------------#
@@ -11,7 +19,7 @@ paste0(c('
 # Version: 1.0
 #
 # Author:
-#', paste0("# Date: ", format(Sys.Date(), format="%d.%m.%Y")),                          
+# ', paste0("# Date: ", format(Sys.Date(), format="%d.%m.%Y")),                          
 '#
 # space:
 #
@@ -144,8 +152,3 @@ apply_ecology <- function(abundance, traits, environment, config) {
 
 ')) # DO NOT REMOVE THIS ->'<-. IT IS IMPORTANT
 }
-
-#' empty skeleton config
-#' 
-#' @return compiled string
-#' @noRd

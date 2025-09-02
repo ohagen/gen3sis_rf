@@ -102,7 +102,7 @@ save_space <- function() {
   data <- dynGet("data")
   vars <-  dynGet("vars")
   space_file = file.path(config$directories$output, "spaces", paste0("space_t_", vars$ti, ".rds"))
-  if( !file.exists(space_file)){
+  if( !base::file.exists(space_file)){
     dir.create(file.path(config$directories$output, "spaces"), showWarnings=FALSE, recursive=TRUE)
     space <- data$space
     saveRDS(object = space, file = space_file)
