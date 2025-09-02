@@ -1,6 +1,9 @@
 # dev
 
 ## In development
+- [Sep 02 2025] removed unnecessary dirs
+- [Sep 02 2025] Manually adapted the changes implemented by @benj919 and @ohagen in gen3sis. Cherry-pick was not possible, due to the differences between gen3sis and gen3sis2 code.
+
 
 # v.1.6.3
 -   [trans_matrix_rebuild] input_creation.R is officially raster free 🎉
