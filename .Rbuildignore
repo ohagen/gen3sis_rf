@@ -39,3 +39,7 @@ LICENSE
 ^\.github$
 ^doc$
 ^Meta$
+#----------------------------
+# NOTES on contributions
+#----------------------------
+^CONTRIBUTING.md$
