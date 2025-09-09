@@ -15,7 +15,7 @@
 #' where: **src** is a vector of environmental conditions for the origin sites, 
 #' **src_habitable** (TRUE or FALSE) for habitable condition of the origin sites, 
 #' **dest** is a vector of environmental conditions for the destination site, dest_habitable  (TRUE or FALSE) for habitable condition of the destination cell
-#' @param directions 4, 8 or 16 neighbors, dictates the connection of cell neighbors on adjacency matrix (see gistance package)
+#' @param directions 4, 8 or 16 neighbors, dictates the connection of cell neighbors on adjacency matrix (see gistance package). Please, note that this does not control the species dispersal in simulation, only makes diagonal distances more realistic. E.g., when using directions = 4, diagonals are not directly computed, thus inflating distances. Default is 16. 
 #' @param output_directory path for storing the gen3sis ready space (i.e. space.rds, metadata.txt and full- and/or local_distance folders) 
 #' @param timesteps vector of names for every time-step to represent the time-step at gen3sis ready space. 
 #' If timesteps=NULL (default), time-steps are sequentially numbered from 0 to the latest time-step.

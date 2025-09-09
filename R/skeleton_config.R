@@ -150,5 +150,33 @@ apply_ecology <- function(abundance, traits, environment, config) {
   stop("calculate species abundances and deaths here")
 }
 
+
+#------------------------------#
+#### Environmental dynamics ####
+#------------------------------#
+
+# "modify_space" must be a list containing two functions.
+# 1. "modify_space$get_mofiers" 
+## Is called at the end of each time-step.
+## Users can set any rules to get environmental modifiers.
+## Can return any object.
+## To deactivate environmental modifiers, the function must simply return NULL.
+# 2. "modify_space$apply_modifiers"
+## Is called at the start of each time-step
+## Its used to apply the modifiers computed in the previous time-step.
+## Will recieve the space and the modifiers object.
+## Must return the "space$environment" object.
+## Only runs if modifiers are not NULL.
+
+modify_space <- list(
+  get_modifiers = function(space, all_species){
+    modifiers <- NULL
+    return(modifiers)
+  },
+  apply_modifiers = function(space, modifiers){
+    return(space$environment)
+  }
+)
+
 ')) # DO NOT REMOVE THIS ->'<-. IT IS IMPORTANT
 }
