@@ -212,6 +212,14 @@ run_simulation <- function(config = NA,
       cat("loop setup \n")
     }
     val <- setup_space(val$config, val$data, val$vars)
+
+    if(!is.null(val$data$space_modifiers)){
+      val$data$space$environment <- val$config$user$modify_space$apply_modifiers(
+        val$data$space,
+        val$data$space_modifiers
+      )
+    }
+
     val <- restrict_species(val$config, val$data, val$vars)
 
     #val <- loop_setup_geo_dist_m_ti(val$config, val$data, val$vars)
@@ -282,10 +290,13 @@ run_simulation <- function(config = NA,
       if(verbose>=2){cat("--\n")} 
     }
     
+    # Environmental dynamics
+    val$data$space_modifiers <- val$config$user$modify_space$get_modifiers(val$data$space, val$data$all_species)
+    
     if(val$vars$ti %in% val$vars$save_steps){
       call_main_observer(val$data, val$vars, val$config)
     }
-    
+
     val <- update_summary_statistics(val$data, val$vars, val$config)
     
     save_val(val, save_state)

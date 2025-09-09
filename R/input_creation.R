@@ -323,13 +323,11 @@ get_local_distances <- function(space_stack, habitable_mask, cost_function, dire
                              habitable = habitable_i)
 
     cost <- cost_function(source_cell, destination_cell)
-    
     if(cost == Inf){
       cost <- 0
     }
     tmp_cost[k] <- cost
   }
-
   transition_matrix <- sparseMatrix(i = transition_cells[, "i"],
                                     j = transition_cells[, "j"],
                                     x = tmp_cost)

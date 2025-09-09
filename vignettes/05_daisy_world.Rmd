@@ -1,0 +1,146 @@
+---
+title: "5. Daisy world"
+output: rmarkdown::html_vignette
+date: "`r format(Sys.time(),  '%d.%m.%Y')`"
+vignette: >
+  %\VignetteIndexEntry{3. Creating configurations (gen3sis input)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(gen3sis2)
+library(ggplot2)
+library(terra)
+library(patchwork)
+```
+
+# Creating environmental variables
+
+```{r eval=FALSE}
+envar <- terra::rast(
+  xmin = -180,
+  xmax = 180,
+  ymin = -90,
+  ymax = 90,
+  resolution = 20
+)
+
+envar <- c(envar,envar)
+names(envar) <- c("temperature","irradiation")
+
+temperature <- c(-22.80, -2.09, 13.24, 22.84, 26.33, 23.37, 13.59, -3.36, -27.85)
+irradiation <- c(2.37, 3.62, 4.50, 4.99, 5.10, 4.83, 4.18, 3.15, 1.74)
+
+r_values <- values(envar)
+
+start_cell <- 1
+for (i in 1:9){
+  if(i != 1){
+    start_cell <- end_cell + 1
+  }
+  end_cell <- start_cell + (ncol(envar)-1)
+  r_values[start_cell:end_cell,"temperature"] <- temperature[i]
+  r_values[start_cell:end_cell,"irradiation"] <- irradiation[i]
+}
+values(envar) <- r_values
+names(envar) <- c("temperature","irradiation")
+plot(envar)
+```
+
+# Create spaces
+```{r eval=FALSE, message=FALSE}
+
+tempr <- envar[["temperature"]]
+irrar <- envar[["irradiation"]]
+
+n_ts <- 100 # number of time-steps
+raster_list <- list(
+  temperature = rep(tempr, n_ts),
+  irradiation = rep(irrar, n_ts)
+)
+
+cf <- function(source, dest){
+  return(1/1000)
+}
+
+dir_spaces <- tempdir()
+
+create_spaces_raster(
+  raster_list = raster_list,
+  cost_function = cf,
+  directions = 16,
+  output_directory = dir_spaces,
+  full_dists = T,
+  overwrite_output = TRUE,
+  verbose = TRUE,
+  duration = list(from = 99, to = 0, by = -1, unit = "Ma"),
+  geodynamic = FALSE
+)
+```
+
+# Run simulation
+
+```{r, eval=FALSE}
+
+configuration <- create_input_config(
+  config_file = system.file("extdata/TestConfigs/daisy_world.R", package="gen3sis2"), 
+  config_name = "DaisyWorld"
+)
+
+sim <- run_simulation(
+  config = configuration,
+  space = dir_spaces,
+  verbose = 0
+)
+```
+
+# Plot
+
+```{r, eval=FALSE}
+
+# df<-read.csv("/home/yogh/Documentos/projects/testing_gen3sis/daisy_world/DaisyWorld/global_temperature.txt")
+df$time_step <- 1:nrow(df)
+
+p1 <- ggplot(df, aes(x = time_step)) +
+  geom_line(aes(y = mean_temperature[[1]], color = "Baseline temperature")) +
+  geom_line(aes(y = mean_temperature, color = "Mean temperature")) +
+  scale_color_manual(
+    name = element_blank(),
+    values = c(
+      "Baseline temperature" = "green",
+      "Mean temperature" = "red")
+  ) +
+  labs(
+    x = element_blank(),
+    y = "Mean global temperature"
+  ) +
+  theme_bw()
+
+p2 <- ggplot(df, aes(x = time_step)) +
+  geom_line(aes(y = white_prevalence, color = "White daisy")) +
+  geom_line(aes(y = black_prevalence, color = "Black daisy")) +
+  scale_color_manual(
+    name = element_blank(),
+    values = c(
+      "Black daisy" = "black",
+      "White daisy" = "navajowhite3")
+  ) +
+  labs(
+    x = "Time-step",
+    y = "Species prevalence"
+  ) + 
+  theme_bw()
+
+p1 / p2 + 
+  plot_layout(guides = "collect") & 
+  theme(legend.position = "bottom")
+```
+
