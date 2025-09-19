@@ -5,7 +5,7 @@
 
 This is the repository for the R-package of the gen3sis engine [project-gen3sis git](https://github.com/project-gen3sis/R-package).
 
-gen3sis is a spatially-explicit eco-evolutionary mechanistic model with a modular implementation. It allows exploring the consequences of ecological and macroevolutionary processes across realistic or theoretical spatio-temporal landscapes.
+gen3sis is a spatially-explicit eco-evolutionary mechanistic model with a modular implementation. It allows exploring the consequences of ecological and macroevolutionary processes across realistic or theoretical spatio-temporal spaces.
 
 gen3sis is licensed under a [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0.html) deriving from ETHZ 2020 <doi.org/10.5905/ethz-1007-251> and has package authorship according to: http://epub.wu.ac.at/3269/1/Report114.pdf
 
@@ -15,35 +15,35 @@ gen3sis is licensed under a [GPLv3 License](https://www.gnu.org/licenses/gpl-3.0
 
 ### How to install
 
-gen3sis is avabaile on [CRAN](https://CRAN.R-project.org/package=gen3sis). You can install the latest CRAN release via
+<!---gen3sis is avabaile on [CRAN](https://CRAN.R-project.org/package=gen3sis). You can install the latest CRAN release via
 
 ```{r}
 install.packages("gen3sis")
 ```
-
-you can also install the latest development release from GitHub via 
+--->
+you can install the latest development release from GitHub via 
 
 ```{r}
-devtools::install_github(repo = "project-gen3sis/R-package", 
+devtools::install_github(repo = "ohagen/gen3sis_rf", 
   dependencies = TRUE, build_vignettes = TRUE)
 ```
 Below the status of the automatic CI R-CMD-check tests
 
-DEVELOPMENT [![R-CMD-check](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml/badge.svg?branch=development)](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml)
+DEVELOPMENT [![R-CMD-check](https://github.com/ohagen/gen3sis_rf/actions/workflows/R-CMD-check.yaml/badge.svg?branch=development)](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml)
 
-MASTER [![R-CMD-check](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml/badge.svg?branch=master)](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml)
+MASTER [![R-CMD-check](https://github.com/ohagen/gen3sis_rf/actions/workflows/R-CMD-check.yaml/badge.svg?branch=master)](https://github.com/project-gen3sis/R-package/actions/workflows/R-CMD-check.yaml)
 ### How to use
 
 #### Run one simulation
 
-Load and run a simulation with the desired config and landscapes. Exemple data is provided with the package
+Load and run a simulation with the desired config and spaces. Exemple data is provided with the package
 ```{r}
-library("gen3sis")
+library("gen3sis2")
 
 datapath <- system.file(file.path("extdata", "WorldCenter"), package = "gen3sis")
 
 sim <- run_simulation(config = file.path(datapath, "config/config_worldcenter.R"), 
-               landscape = file.path(datapath, "landscape"),
+               space = file.path(datapath, "space"),
                output_directory = tempdir(),
                verbose=0)
 ```
@@ -61,19 +61,15 @@ plot_summary(sim)
 Make sure you have the latest gen3sis version
 ```{r}
 #print package version
-paste("gen3sis version:", packageVersion("gen3sis"))
+paste("gen3sis2 version:", packageVersion("gen3sis2"))
 ```
 
 ### How to contribute
-The main branches of the gen3sis repo are:
-*	master
-*	development
 
-The master branch should always reflect the state of the current release of gen3sis on CRAN. The development branch contains the working additions/changes to the code that are to be included in the next release.
-You should not work on either of these branches directly. Rather, to make changes or work on a new feature, you should create a separate branch off the development branch. While working on your branch, frequently merge changes from development to stay up to date. Once your work is ready, and before you merge your branch into development, make sure to merge any changes from development and verify the code is compiling and tests are passing. Once these checks have been done, create a pull request to merge your branch into development. You can request reviewers for your pull request directly via GitHub. After your pull request is approved, or if it has not been reviewed within 30 days, it will be merged into development. 
-The branch hotfix-development exists for small (one commit only) changes that are not worth creating a new branch for (for instance, small bugfixes, readme or help files edits, etc.). A pull request can then be created to merge those changes into development.
-New features should never be merged directly into master. Only hotfixes to the current release may be merged into master. For hotfixes, create a separate branch from master, make the fix and verify it, and then merge the hotfix branch into master and development. Similarly to above, the hotfix-master branch exists for small (one commit only) bugfixes to the current release. A pull request can then be created to merge those changes into master and development.
-The gen3sis workflow is inspired by the RevBayes workflow: https://revbayes.github.io/developer
+Great that you are considering contributing! We welcome contributions from the community, whether they are bug fixes, new features, documentation improvements, or anything else that can help improve the package. Feel free to also reach out over e-mail to discuss ideas.
+For guidelines on contributing to this project, please refer to the [CONTRIBUTING.md](./CONTRIBUTING.md) file. In short, the main branches of this repo are:
+* **master** – reflects the current CRAN release (if at all). Only hotfixes or release-ready changes are merged here, typically just before CRAN submission.
+* **development** – serves as the main working branch. All new features, improvements, and fixes should be merged here from separate feature or bugfix branches.
 
 
 ### Credits

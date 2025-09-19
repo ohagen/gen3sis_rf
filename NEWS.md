@@ -1,6 +1,9 @@
 # dev
 
 ## In development
+- [Sep 02 2025] removed unnecessary dirs
+- [Sep 02 2025] Manually adapted the changes implemented by @benj919 and @ohagen in gen3sis. Cherry-pick was not possible, due to the differences between gen3sis and gen3sis2 code.
+
 
 # v.1.6.3
 -   [trans_matrix_rebuild] input_creation.R is officially raster free 🎉
@@ -8,7 +11,7 @@
 -   [trans_matrix_rebuild] gdistance package dependencies were replaced by internal gen3sis2 implementations.
 
 # v.1.6.2
--   Added test references, spacescapes and config files.
+-   Added test references, spaces and config files.
 -   gen3sis_main tests improved and expanded (92.11% covered).
 -   all exported functions of config_handling have tests now (94.34% covered).
 -   started to write plotting functions tests. 
@@ -17,7 +20,7 @@
 
 # v.1.6.1
 -   Changed run_simulation() [genesis_main.R] code to only load the distance matrix
-    every timestep if needed, i.e., if the spacescape is geodynamic. If it is not,
+    every timestep if needed, i.e., if the space is geodynamic. If it is not,
     the function will only load the distance matrix once at the beginning of the simulation.
 -   Substituted the raster package functions with terra package functions in
     the plot_summary() [plotting_functions.R] code. The raster package is deprecated and

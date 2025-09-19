@@ -21,7 +21,7 @@ prepare_directories <- function(config_file = NA,
     stop("no config file provided!")
   } else if (is(config_file,"gen3sis_config")){
     cat("Config found: using config object \n")
-  } else if(!file.exists(config_file)){
+  } else if(!base::file.exists(config_file)){
     stop("Config file does not exist! \n")
   } else {
     cat(paste("config found: ", config_file))
@@ -37,7 +37,7 @@ prepare_directories <- function(config_file = NA,
   if(!dir.exists(input_dir)){
     stop(paste("input directory does not exist!:", input_dir))
   }
-  cat(paste("Landscape found:", input_directory),"\n")
+  cat(paste("space found:", input_directory),"\n")
 
   if(is.na(output_directory)) {
     if (is(config_file, "gen3sis_config")){
@@ -78,8 +78,8 @@ prepare_directories <- function(config_file = NA,
 
   #dir$output_species <- file.path(dir$output, "species")
   #dir.create(dir$output_species, recursive=TRUE, showWarnings = FALSE)
-  #dir$output_landscapes <- file.path(dir$output, "landscapes")
-  #dir.create(dir$output_landscapes, recursive=TRUE, showWarnings = FALSE)
+  #dir$output_spaces <- file.path(dir$output, "spaces")
+  #dir.create(dir$output_spaces, recursive=TRUE, showWarnings = FALSE)
   dir$output_plots <- file.path(dir$output, "plots")
   dir.create(dir$output_plots, recursive=TRUE, showWarnings = FALSE)
   #dir$output_val <- file.path(dir$output, "val")
@@ -125,7 +125,7 @@ create_input_config <- function(config_file = NA, config_name = NULL) {
     }
     # return empty config
     return(invisible(new_config))
-  } else if(!file.exists(config_file)){
+  } else if(!base::file.exists(config_file)){
     # config file does not exist, abort
     stop(paste("config file:", config_file, "does not exist") )
   } else {
@@ -349,7 +349,7 @@ write_config_skeleton <- function(file_path = "./config_skeleton.R", overwrite =
   }
   
   # Writes the file
-  if( file.exists(file_path) & !overwrite) {
+  if( base::file.exists(file_path) & !overwrite) {
     warning(file_path, " exists, file not written.")
     return(FALSE)
   } else {
