@@ -81,18 +81,3 @@ evolve <- function(species, space, distance_matrix, config) {
 
   return(species)
 }
-
-
-#' No evolution considered
-#'
-#' @param species the current species
-#' @param cluster_indices indices to assign cells to geographic clusters
-#' @param space the current space
-#' @param config the general config
-#' @return returns an invisible empty species traits when no evolution is considered
-#' @keywords simulation
-#'
-#' @export
-evolution_mode_none <- function(species, cluster_indices, space, config) {
-  return(invisible(species[["traits"]]))
-}
