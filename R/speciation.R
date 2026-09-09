@@ -39,10 +39,36 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
 #' @param space the space of the current time step
 #' @param config the config of the simulation
 #'
-#' @return a site by site matrix of potential divergence
+#' @return a scalar or site by site matrix of within-metapopulation divergence
 #' @keywords user
 #' @export
 get_within_cluster_divergence_factor <- function(species, cells, divergence, space, config){
+  stop("this function documents the user function interface only, do not use it!")
+}
+
+#' User-specified function determining within-site divergence changes
+#'
+#' @param species the species of the current time step
+#' @param space the space of the current time step
+#' @param config the config of the simulation
+#'
+#' @return a scalar or vector with divergence change per occupied site
+#' @keywords user
+#' @export
+get_within_site_divergence_factor <- function(species, cell, divergence, space, config) {
+  stop("this function documents the user function interface only, do not use it!")
+}
+
+#' User-specified function determining within-site speciation outcome
+#'
+#' @param abundance abundance of the parental population
+#' @param traits traits of the parental population
+#' @param config the config of the simulation
+#'
+#' @return a list of parent and daughter abundance and traits
+#' @keywords user
+#' @export
+apply_within_site_speciation <- function(abundance, traits, config) {
   stop("this function documents the user function interface only, do not use it!")
 }
 
@@ -280,15 +306,9 @@ update_within_cluster_divergence <- function(
       next
     }
     
-    cluster_divergence <-
-      divergence[
-        cluster_cells,
-        cluster_cells,
-        drop = FALSE
-      ]
+    cluster_divergence <- divergence[cluster_cells, cluster_cells, drop = FALSE]
     
-    divergence_update <-
-      config$gen3sis$speciation$
+    divergence_update <- config$gen3sis$speciation$
       get_within_cluster_divergence_factor(
         species = species,
         cells = cluster_cells,
@@ -299,18 +319,44 @@ update_within_cluster_divergence <- function(
     
     # regardless if the update is a scalar or a matrix addition works
     cluster_divergence <- cluster_divergence + divergence_update
-    
     cluster_divergence[cluster_divergence < 0] <- 0
     diag(cluster_divergence) <- 0
     
-    divergence[
-      cluster_cells,
-      cluster_cells
-    ] <- cluster_divergence
+    divergence[cluster_cells, cluster_cells] <- cluster_divergence
   }
   
   return(divergence)
 }
+
+
+#' Updates within-site divergence according to the divergence update
+#'
+#' @param divergence a vector of within-site divergence per population
+#' @param species the species of the current time step
+#' @param space the space of the current time step
+#' @param config the current config object
+#'
+#' @return an updated within-site divergence vector
+#' @noRd
+update_within_site_divergence <- function(divergence, species, space, config) {
+  for (cell in names(divergence)) {
+    divergence_update <- config$gen3sis$speciation$
+      get_within_site_divergence_factor(
+      species = species,
+      cell = cell,
+      divergence = divergence[cell],
+      space = space,
+      config = config
+    )
+    
+    divergence[cell] <- divergence[cell] + divergence_update
+  }
+  
+  divergence[divergence < 0] <- 0
+  
+  return(divergence)
+}
+
 
 #' Orchestrates within-site speciation
 #'
@@ -325,7 +371,7 @@ update_within_cluster_divergence <- function(
 #' @return updated config, data and vars
 #' @noRd
 loop_within_site_speciation <- function(config, data, vars) {
-  if (!is.function(config$gen3sis$speciation$apply_within_site_speciation)) {
+  if (!is.function(config$gen3sis$speciation$get_within_site_divergence_factor)) {
     return(list(config = config, data = data, vars = vars))
   }
   
@@ -333,78 +379,61 @@ loop_within_site_speciation <- function(config, data, vars) {
     cat("entering within-site speciation module\n")
   }
   
-  # vars$n_sp has not yet been updated with species created during this
-  # timestep. It therefore represents the species present at its start.
-  # this means that within site speciation doesn't depend on loop order and avoids 
-  # multiple lineages splitting of at the same time (which would cause zero-duration 
-  # phylogenetic branches. To note is that species get evaluated in a post spatial
-  # cluster split state, which does establish a certain priority of processes.
-  n_species_at_timestep_start <- vars$n_sp
-  
-  for (spi in seq_len(n_species_at_timestep_start)) {
-    parent_before <- data$all_species[[spi]]
+  for (spi in seq_len(vars$n_sp)) {
+    species <- data$all_species[[spi]]
     
-    if (!length(parent_before[["abundance"]])) {
+    if (!length(species$abundance)) {
       next
     }
     
-    result <-
-      config$gen3sis$speciation$apply_within_site_speciation(
-        species = parent_before,
-        space = data[["space"]],
-        config = config
-      )
+    # User determines divergence accumulation.
+    species$divergence$within_site <- update_within_site_divergence(
+      divergence = species$divergence$within_site,
+      species = species,
+      space = data$space,
+      config = config
+    )
     
-    # updating the parent, e.g. within-site and abundance, is the responsibility 
-    # of the user. Because we might otherwise limit user-freedom.
-    parent_after <- result[["species"]]
-    events <- result[["events"]]
+    speciation_sites <- names(species$divergence$within_site)[
+      species$divergence$within_site > 
+        config$gen3sis$speciation$divergence_threshold
+    ]
     
-    # changes in the divergence within a site may need to be updated regardless
-    # of successful speciation.
-    data$all_species[[spi]] <- parent_after
-    
-    # if no events have occurred, skip to the next species
-    if (is.null(events) | !length(events)) {
-      next
-    }
-    
-    for (event in events) {
-      site <- as.character(event[["site"]])
-      daughter_abundance <- event[["daughter_abundance"]]
-      daughter_traits <- event[["daughter_traits"]]
+    for (site in speciation_sites) {
+      ecological_states <- NULL
       
-      if (
-        is.null(names(daughter_traits)) ||
-        !all(
-          colnames(parent_after[["traits"]]) %in%
-          names(daughter_traits)
-        )
-      ) {
-        stop(
-          "daughter_traits must be a named vector containing every ",
-          "trait present in the parent species."
-        )
+      if (!is.null(species$ecological_states)) {
+        ecological_states <- species$ecological_states[site, ]
       }
       
-      new_id <-
-        vars$n_sp +
-        vars$n_sp_added_ti +
-        1L
-      
-      daughter <- create_species_within_site(
-        parent_species = parent_after,
-        new_id = new_id,
-        site = site,
-        daughter_abundance = daughter_abundance,
-        daughter_traits = daughter_traits,
+      split <- config$gen3sis$speciation$apply_within_site_speciation(
+        abundance = species$abundance[site],
+        traits = species$traits[site, ],
+        ecological_states = ecological_states,
+        local_environment = data$space$environment[site, , drop = FALSE],
         config = config
       )
       
-      data$all_species <- append(
-        data$all_species,
-        list(daughter)
+      trait_names <- colnames(species$traits)
+      
+      species$abundance[site] <- split$parent["abundance"]
+      species$traits[site, ] <- split$parent[trait_names]
+      
+      # the offspring will inherit this in "create_species_within_site"
+      species$divergence$within_site[site] <- 0
+      
+      new_id <- vars$n_sp + vars$n_sp_added_ti + 1
+      
+      daughter <- create_species_within_site(
+        parent_species = species,
+        new_id = new_id,
+        site = site,
+        daughter_abundance = split$daughter["abundance"],
+        daughter_traits = split$daughter[trait_names],
+        config = config
       )
+      
+      data$all_species <- append(data$all_species, list(daughter))
       
       data$phy <- rbind(
         data$phy,
@@ -417,23 +446,18 @@ loop_within_site_speciation <- function(config, data, vars) {
         )
       )
       
-      vars$n_new_sp_ti <-
-        vars$n_new_sp_ti + 1L
-      
-      vars$n_sp_added_ti <-
-        vars$n_sp_added_ti + 1L
+      vars$n_new_sp_ti <- vars$n_new_sp_ti + 1
+      vars$n_sp_added_ti <- vars$n_sp_added_ti + 1
     }
+    # add species back after the loop (e.g. modifications to traits)
+    data$all_species[[spi]] <- species
   }
   
   if (config$gen3sis$general$verbose >= 3) {
     cat("exiting within-site speciation module\n")
   }
   
-  return(list(
-    config = config,
-    data = data,
-    vars = vars
-  ))
+  return(list(config = config, data = data, vars = vars))
 }
 
 #' Updates the total number of species
