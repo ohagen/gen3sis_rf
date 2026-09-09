@@ -249,7 +249,6 @@ apply_ecology <- function(
   abundance,
   traits,
   ecological_states,
-  within_site_divergence,
   local_environment,
   config,
   abundance_scale = 10,

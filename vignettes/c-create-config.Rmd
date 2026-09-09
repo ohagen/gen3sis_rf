@@ -132,7 +132,7 @@ apply_evolution <- function(species, cluster_indices, space, config) {
 # called for every cell with all occurring species, this function calculates abundances and/or who survives for each sites
 # returns a vector of abundances.
 # set the abundance to 0 for every species supposed to die.
-apply_ecology <- function(abundance, traits, environment, config) {
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
   stop("calculate species abundances and deaths here")
 }
 >```
@@ -287,16 +287,23 @@ apply_evolution <- function(species, cluster_indices, space, config) {
 The ecology function determines the abundance or presence of the populations in occupied sites of each species. The function iterates over all occupied sites and updates the species population abundances or presences on the basis of local environmental values, updated co-occurrence patterns and species traits. The function takes as input the species abundance, species trait, species divergence and clusters, and the space values. In our example, we calculate abundances in a site based on how close the species is to the site temperature. We scale the values to avoid small numbers and apply a carrying capacity based on aridity and temperature corrected by the area of a site. If abundances are below 1, species are considered extinct, if total abundance in a site is above the carrying capacity, small abundances are removed progressively and randomly distributed across the present species until total abundance is smaller or equal to the carrying capacity.
 
 >```{r eval=FALSE}
-apply_ecology <- function(abundance, traits, space, config) {
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
   abundance_scale = 10
   abundance_threshold = 1
   #abundance threshold
   survive <- abundance>=abundance_threshold
   abundance[!survive] <- 0
-  abundance <- (( 1-abs( traits[, "temp"] - space[, "temp"]))*abundance_scale)*as.numeric(survive)
+  abundance <- (( 1-abs( traits[, "temp"] - local_environment[, "temp"]))*abundance_scale)*as.numeric(survive)
   #abundance threshold
   abundance[abundance<abundance_threshold] <- 0
-  k <- ((space[,"area"]*(space[,"arid"]+0.1)*(space[,"temp"]+0.1))*abundance_scale^2)
+  k <- (
+    (
+      local_environment[,"area"] * 
+        (local_environment[,"arid"]+0.1) * 
+        (local_environment[,"temp"]+0.1)
+    ) * 
+      abundance_scale^2
+  )
   total_ab <- sum(abundance)
   subtract <- total_ab-k
   if (subtract > 0) {
@@ -349,10 +356,11 @@ The abundance_threshold parameter defines the niche width cutoff. The higher the
 
 ```{r eval=T}
 # modify the ecology function
-config_object$gen3sis$ecology$apply_ecology <- function(abundance, traits, space, config, abundance_scale = 10, abundance_threshold = 8) {
+config_object$gen3sis$ecology$apply_ecology <- function(abundance, traits, ecological_states, 
+                                                        local_environment, config, abundance_scale = 10, abundance_threshold = 8) {
   #abundance threshold
   abundance <- as.numeric(!abundance<abundance_threshold)
-  abundance <- (( 1-abs( traits[, "temp"] - space[, "temp"]))*abundance_scale)*abundance
+  abundance <- (( 1-abs( traits[, "temp"] - local_environment[, "temp"]))*abundance_scale)*abundance
   #abundance threshold
   abundance[abundance<abundance_threshold] <- 0
   return(abundance)

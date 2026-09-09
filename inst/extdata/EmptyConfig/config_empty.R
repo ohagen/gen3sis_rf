@@ -128,6 +128,6 @@ apply_evolution <- function(species, cluster_indices, space, config) {
 # who survives for each sites.
 # returns a vector of abundances.
 # set the abundance to 0 for every species supposed to die.
-apply_ecology <- function(abundance, traits, environment, config) {
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
   stop("calculate species abundances and deaths here")
 }
