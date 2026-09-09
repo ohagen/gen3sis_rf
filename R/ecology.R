@@ -39,7 +39,6 @@ apply_ecology <- function(abundance, traits, ecological_states, local_environmen
 #' @return returns the standard val(config, data, vars) list
 #' @noRd
 loop_ecology <- function(config, data, vars) {
-  # skip ecology function if config$exp$enable_eco_mec is FALSE
   if (config$gen3sis$general$verbose >= 3) {
     cat(paste("entering ecology module @ time", vars$ti, "\n"))
   }
@@ -54,19 +53,17 @@ loop_ecology <- function(config, data, vars) {
   rownames(all_species_presence) <- all_cells
 
   # take ids that have at least one species...
-  #occupied_cells <- rownames(geo_sp_ti[rowSums(data$geo_sp_ti)>0, ,drop=FALSE])
   occupied_cells <- rownames(all_species_presence)[
     rowSums(all_species_presence) > 0
   ]
-
+  
+  if (max(rowSums(all_species_presence)) > config$gen3sis$general$max_number_of_coexisting_species) {
+    vars$flag <- "max_number_coexisting_species"
+    return(list(config = config, data = data, vars = vars))
+  }
+  
   for (cell in occupied_cells) {
     coo_sp <- which(all_species_presence[cell, ])
-    
-    if (length(coo_sp) > config$gen3sis$general$max_number_of_coexisting_species) {
-      vars$flag <- "max_number_coexisting_species"
-      return(list(config = config, data = data, vars = vars))
-    }
-    
     local_environment <- data$space[["environment"]][cell, , drop = FALSE]
 
     # create trait matrix for co-occurring species
