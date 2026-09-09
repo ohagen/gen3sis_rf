@@ -34,16 +34,15 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
 #' User-specified function determining the rules for within-cluster divergence of populations. 
 #'
 #' @param species the species of the current time step
-#' @param species_presence sites occupied by the species
-#' @param cluster_indices an index vector indicating the cluster every occupied site is part of
-#' @param divergence the uncompressed divergence matrix
+#' @param cells cells occupied by the species part of the meta-population
+#' @param divergence site by site divergence matrix for the meta-population
 #' @param space the space of the current time step
 #' @param config the config of the simulation
 #'
 #' @return a site by site matrix of potential divergence
 #' @keywords user
 #' @export
-get_within_cluster_divergence_factor <- function(species, species_presence, cluster_indices, divergence, space, config){
+get_within_cluster_divergence_factor <- function(species, cells, divergence, space, config){
   stop("this function documents the user function interface only, do not use it!")
 }
 
@@ -107,7 +106,7 @@ loop_speciation <- function(config, data, vars) {
       gen_dist_spi, 
       clu_geo_spi_ti, 
       ifactor = ifactor
-      )
+    )
     
     # update the within cluster divergence (or homogenisation)
     if (length(species_presence) > 1) {
@@ -168,7 +167,6 @@ loop_speciation <- function(config, data, vars) {
 
       #required for proper initialization of new species
       full_gen_dist <- gen_dist_spi
-
       gen_dist_spi$index <- gen_dist_spi$index[clu_gen_spi_ti == 1]
       ue <- unique(gen_dist_spi$index)
       gen_dist_spi$compressed_matrix <- gen_dist_spi$compressed_matrix[
@@ -273,32 +271,43 @@ update_within_cluster_divergence <- function(
     space,
     config
 ) {
-
-  divergence_update <-
-    config$gen3sis$speciation$
-    get_within_cluster_divergence_factor(
-      species = species,
-      species_presence = species_presence,
-      cluster_indices = cluster_indices,
-      divergence = divergence,
-      space = space,
-      config = config
-    )
-  # should we mask it here or not? Should the user pass a masked matrix already?
-  within_cluster <- outer(cluster_indices, cluster_indices, "==")
-  diag(within_cluster) <- FALSE
   
-  if (length(divergence_update) == 1L) {
-    divergence[within_cluster] <-
-      divergence[within_cluster] + divergence_update
-  } else {
-    divergence[within_cluster] <-
-      divergence[within_cluster] +
-      divergence_update[within_cluster]
+  for(cluster in unique(cluster_indices)){
+    
+    cluster_cells <- species_presence[cluster_indices == cluster]
+    # no within meta-population divergence if there's only one population
+    if(length(cluster_cells) < 2){
+      next
+    }
+    
+    cluster_divergence <-
+      divergence[
+        cluster_cells,
+        cluster_cells,
+        drop = FALSE
+      ]
+    
+    divergence_update <-
+      config$gen3sis$speciation$
+      get_within_cluster_divergence_factor(
+        species = species,
+        cells = cluster_cells,
+        divergence = cluster_divergence,
+        space = space,
+        config = config
+      )
+    
+    # regardless if the update is a scalar or a matrix addition works
+    cluster_divergence <- cluster_divergence + divergence_update
+    
+    cluster_divergence[cluster_divergence < 0] <- 0
+    diag(cluster_divergence) <- 0
+    
+    divergence[
+      cluster_cells,
+      cluster_cells
+    ] <- cluster_divergence
   }
-  
-  divergence[divergence < 0] <- 0
-  diag(divergence) <- 0
   
   return(divergence)
 }
