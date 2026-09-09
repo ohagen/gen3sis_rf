@@ -49,10 +49,12 @@ get_within_cluster_divergence_factor <- function(species, cells, divergence, spa
 #' User-specified function determining within-site divergence changes
 #'
 #' @param species the species of the current time step
+#' @param cell the focal cell
+#' @param divergence the current divergence within the cell
 #' @param space the space of the current time step
 #' @param config the config of the simulation
 #'
-#' @return a scalar or vector with divergence change per occupied site
+#' @return a scalar of divergence change per occupied site
 #' @keywords user
 #' @export
 get_within_site_divergence_factor <- function(species, cell, divergence, space, config) {
@@ -407,10 +409,8 @@ loop_within_site_speciation <- function(config, data, vars) {
       }
       
       split <- config$gen3sis$speciation$apply_within_site_speciation(
-        abundance = species$abundance[site],
+        abundance = as.numeric(species$abundance[site]),
         traits = species$traits[site, ],
-        ecological_states = ecological_states,
-        local_environment = data$space$environment[site, , drop = FALSE],
         config = config
       )
       
