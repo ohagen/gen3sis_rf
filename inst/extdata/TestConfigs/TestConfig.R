@@ -165,8 +165,7 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
 # note that scale time is not present here as we will have to add this later
 get_within_cluster_divergence_factor <- function(
     species,
-    species_presence,
-    cluster_indices,
+    cells,
     divergence,
     space,
     config
