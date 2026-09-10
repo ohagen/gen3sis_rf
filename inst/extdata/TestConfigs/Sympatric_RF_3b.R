@@ -5,9 +5,16 @@
 ### config based on Sympatric_4.R
 
 random_seed <- 28015
-step_time <- list(x = 1, unit = "timestep")
-start_time <- NA
-end_time <- 50
+# step_time <- list(x = 1, unit = "timestep")
+# start_time <- NA
+# end_time <- 50
+
+duration <- list(
+  from = NA,
+  to = 55,
+  by = -1,
+  unit = "Myr"
+)
 
 max_number_of_species <- 100000
 max_number_of_coexisting_species <- 100000
@@ -17,6 +24,8 @@ trait_names = c("temp",  "dispersal")
 environmental_ranges <- list()
 
 initial_abundance <- 1
+ecological_state_names <- "frequency_dependence"
+initial_ecological_state <- c("frequency_dependence" = 1)
 
 #-------------------------#
 #### Observer function ####
@@ -37,6 +46,7 @@ end_of_timestep_observer <- function(data, vars, config) {
 #----------------------#
 
 create_ancestor_species <- function(space, config) {
+  
   range <- c(-95, -24, -68, 13)
   co <- space$coordinates
   selection <- co[, "x"] >= range[1] &
@@ -52,6 +62,8 @@ create_ancestor_species <- function(space, config) {
     #set local adaptation to max optimal temp equals local temp
     new_species[[i]]$traits[ , "temp"] <- space$environment[initial_cells,"temp"]
     new_species[[i]]$traits[ , "dispersal"] <- 1
+    new_species[[i]]$ecological_states[, ecological_state_names] <- 
+      initial_ecological_state[ecological_state_names]
   }
   
   return(new_species)
@@ -80,8 +92,7 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
 
 get_within_cluster_divergence_factor <- function(
     species,
-    species_presence,
-    cluster_indices,
+    cells,
     divergence,
     space,
     config
@@ -92,37 +103,29 @@ get_within_cluster_divergence_factor <- function(
 daughter_fraction <- 0.5
 point_speciation_rate <- 5e-4
 
+get_within_site_divergence_factor <- function(
+    species, cell, divergence, space, config
+    ){
+  divergence_update <- ifelse(runif(n = 1, min = 0, max = 1) <= point_speciation_rate, 
+         config$gen3sis$speciation$divergence_threshold + 0.01, 
+         0
+         )
+  return(divergence_update)
+}
+
+# does this even need "config"?
+# simple proportional split & traits are inherited faithfully
 apply_within_site_speciation <- function(
-    species,
-    space,
-    config
+    abundance, traits, config
 ) {
-  # select the populations that are undergoing point-speciation
-  event_cells <- names(species[["divergence"]][["index"]])
-  event_cells <- event_cells[runif(n = length(event_cells), min = 0, max = 1) <= config$user$point_speciation_rate]
   
-  # return a list of speciation events
-  events <- vector("list", length(event_cells))
-  
-  for (i in seq_along(event_cells)) {
-    site <- event_cells[i]
-    
-    daughter_abundance <-
-      species[["abundance"]][site] *
-      config$user$daughter_fraction
-    
-    species[["abundance"]][site] <-
-      species[["abundance"]][site] *
-      (1 - config$user$daughter_fraction)
-    
-    events[[i]] <- list(
-      site = site,
-      daughter_abundance = daughter_abundance,
-      daughter_traits = species[["traits"]][site, ]
+  return(
+    list(
+      parent = c(abundance = abundance * (1 - config$user$daughter_fraction), traits),
+      daughter = c(abundance = abundance * config$user$daughter_fraction, traits)
     )
-  }
-  
-  return(list(species = species, events = events))
+  )
+
 }
 
 #-----------------------#
@@ -136,9 +139,9 @@ apply_trait_evolution <- function(species, cluster_indices, space, config) {
 #-------------------------------------------------#
 #### Environmental and ecological interactions ####
 #-------------------------------------------------#
-ecological_state_names <- NA
-initial_ecological_state <- NA
 
+# this doesn't do anything in this config, but it could potentially feedback into 
+# the within-site speciation divergence update
 apply_ecology <- function(
     abundance,
     traits,
@@ -146,16 +149,25 @@ apply_ecology <- function(
     local_environment,
     config
 ) {
-  return(abundance)
+
+  ecological_states["frequency_dependence", ] <-
+    runif(n = length(abundance), min = 0, max = 1)
+  
+  return(
+    rbind(
+      abundance = abundance,
+      ecological_states
+    )
+  )
 }
 #----------------------#
 #### Space modifier ####
 #----------------------#
 
-get_modifiers <- function(space, all_species) {
+get_modifiers <- function(space, config, all_species) {
   NULL
 }
 
-apply_modifiers <- function(space, modifiers) {
+apply_modifiers <- function(space, config, modifiers) {
   return(space$environment)
 }

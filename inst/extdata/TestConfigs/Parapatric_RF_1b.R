@@ -1,13 +1,11 @@
-#------------------------------------------------------------
-# Identity test: within-cluster speciation ON but no-op
-#------------------------------------------------------------
-
-### config based on Sympatric_4.R
-
 random_seed <- 28015
-step_time <- list(x = 1, unit = "timestep")
-start_time <- NA
-end_time <- 50
+
+duration <- list(
+  from = NA,
+  to = 55,
+  by = -1,
+  unit = "Myr"
+)
 
 max_number_of_species <- 100000
 max_number_of_coexisting_species <- 100000
@@ -18,19 +16,13 @@ environmental_ranges <- list()
 
 initial_abundance <- 1
 ecological_state_names <- "frequency_dependence"
-initial_ecological_state <- c("frequency_dependence" = 0)
+initial_ecological_state <- c("frequency_dependence" = 1)
 
 #-------------------------#
 #### Observer function ####
 #-------------------------#
 
 end_of_timestep_observer <- function(data, vars, config) {
-  # save_species()
-  # save_abundance()
-  # save_divergence()
-  # save_occupancy()
-  save_phylogeny()
-  save_traits()
   plot_richness(data$all_species, data$space)
 }
 
@@ -39,6 +31,7 @@ end_of_timestep_observer <- function(data, vars, config) {
 #----------------------#
 
 create_ancestor_species <- function(space, config) {
+  
   range <- c(-95, -24, -68, 13)
   co <- space$coordinates
   selection <- co[, "x"] >= range[1] &
@@ -76,57 +69,45 @@ get_dispersal_values <- function(n, species, space, config) {
 #### Speciation ####
 #------------------#
 
-divergence_threshold <- 1
+divergence_threshold <- 2
 
 get_divergence_factor <- function(species, cluster_indices, space, config) {
   0
 }
 
+#-------------------------------------#
+#### Within-cluster speciation     ####
+#-------------------------------------#
+# the (maximum) rate of within-cluster divergence per time step
+within_cluster_divergence_rate <- 1
+# population traits mimic a Gaussian distribution to determine overlap in niche
+# the higher the overlap, the higher the degree of gene flow in this config
+sigma_trait_gene_flow <- 0.25
+
+# new ecological implementation: divergence increases based on ecological distance
 get_within_cluster_divergence_factor <- function(
     species,
-    species_presence,
-    cluster_indices,
+    cells,
     divergence,
     space,
     config
 ) {
-  0
-}
-
-daughter_fraction <- 0.5
-point_speciation_rate <- 5e-4
-
-apply_within_site_speciation <- function(
-    species,
-    space,
-    config
-) {
-  # select the populations that are undergoing point-speciation
-  event_cells <- names(species[["divergence"]][["index"]])
-  event_cells <- event_cells[runif(n = length(event_cells), min = 0, max = 1) <= config$user$point_speciation_rate]
+  # temperature optima trait per-population within a species
+  temp <- species$traits[cells, "temp"]
   
-  # return a list of speciation events
-  events <- vector("list", length(event_cells))
+  # distance between in trait value between the pops
+  trait_distance <- abs(outer(temp, temp, "-"))
+  # calculate overlap between the traits assuming a Gaussian 
+  gene_flow <- exp(
+    -trait_distance^2 /
+      (2 * config$user$sigma_trait_gene_flow^2)
+  )
+  # Provide an update to the divergence with the pre-specified rate and calculated gene flow
+  divergence_update <-
+    config$user$within_cluster_divergence_rate *
+    (1 - gene_flow)
   
-  for (i in seq_along(event_cells)) {
-    site <- event_cells[i]
-    
-    daughter_abundance <-
-      species[["abundance"]][site] *
-      config$user$daughter_fraction
-    
-    species[["abundance"]][site] <-
-      species[["abundance"]][site] *
-      (1 - config$user$daughter_fraction)
-    
-    events[[i]] <- list(
-      site = site,
-      daughter_abundance = daughter_abundance,
-      daughter_traits = species[["traits"]][site, ]
-    )
-  }
-  
-  return(list(species = species, events = events))
+  return(divergence_update)
 }
 
 #-----------------------#
@@ -134,7 +115,17 @@ apply_within_site_speciation <- function(
 #-----------------------#
 
 apply_trait_evolution <- function(species, cluster_indices, space, config) {
-  return(species$traits)
+  traits <- species[["traits"]]
+  cells <- rownames(traits)
+  # selection (towards the environmental optima)
+  selection_rate <- 0.05
+  traits[, "temp"] <- traits[, "temp"] + selection_rate * (space$environment[cells, "temp"] - traits[, "temp"])
+  # drift (negligible here but may be useful for extensions)
+  drift_strength <- 0.001
+  mutation_deltas <- rnorm(length(traits[, "temp"]), mean=0, sd=drift_strength)
+  traits[, "temp"] <- traits[, "temp"] + mutation_deltas
+  
+  return(traits)
 }
 
 #-------------------------------------------------#
@@ -148,23 +139,25 @@ apply_ecology <- function(
     local_environment,
     config
 ) {
-  # browser()
+
   ecological_states["frequency_dependence", ] <-
-    1 - abundance / sum(abundance)
+    runif(n = length(abundance), min = 0, max = 1)
   
-  rbind(
-    abundance = abundance,
-    ecological_states
+  return(
+    rbind(
+      abundance = abundance,
+      ecological_states
+    )
   )
 }
 #----------------------#
 #### Space modifier ####
 #----------------------#
 
-get_modifiers <- function(space, all_species) {
+get_modifiers <- function(space, config, all_species) {
   NULL
 }
 
-apply_modifiers <- function(space, modifiers) {
+apply_modifiers <- function(space, config, modifiers) {
   return(space$environment)
 }
