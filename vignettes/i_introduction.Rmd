@@ -59,7 +59,7 @@ packageVersion("gen3sis2")
 ## 1. Set-up {#setup}
 Before we can run a *gen3sis* simulation, we need to generate files containing the input data and model settings. For this example, we have provided environmental data for South American over the Cenozoic. To access this dataset, we will define the path to the data contained inside the package.
 
-```{r eval=TRUE, echo=FALSE}
+```{r eval=TRUE}
 # Set the filepath to the location in gen3sis2 files with test data
 datapath <- system.file(file.path("extdata", "SouthAmerica"),
                         package = "gen3sis2")
