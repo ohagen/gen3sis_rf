@@ -4,30 +4,21 @@
 \alias{get_within_cluster_divergence_factor}
 \title{User-specified function determining the rules for within-cluster divergence of populations.}
 \usage{
-get_within_cluster_divergence_factor(
-  species,
-  species_presence,
-  cluster_indices,
-  divergence,
-  space,
-  config
-)
+get_within_cluster_divergence_factor(species, cells, divergence, space, config)
 }
 \arguments{
 \item{species}{the species of the current time step}
 
-\item{species_presence}{sites occupied by the species}
+\item{cells}{cells occupied by the species part of the meta-population}
 
-\item{cluster_indices}{an index vector indicating the cluster every occupied site is part of}
-
-\item{divergence}{the uncompressed divergence matrix}
+\item{divergence}{site by site divergence matrix for the meta-population}
 
 \item{space}{the space of the current time step}
 
 \item{config}{the config of the simulation}
 }
 \value{
-a site by site matrix of potential divergence
+a scalar or site by site matrix of within-metapopulation divergence
 }
 \description{
 User-specified function determining the rules for within-cluster divergence of populations.
