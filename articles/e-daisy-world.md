@@ -5,7 +5,7 @@
 library(gen3sis2)
 library(ggplot2)
 library(terra)
-#> terra 1.9.46
+#> terra 1.9.50
 library(patchwork)
 #> 
 #> Attaching package: 'patchwork'

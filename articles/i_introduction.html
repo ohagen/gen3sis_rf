@@ -66,7 +66,7 @@
 
       <h1>1. Introducing gen3sis</h1>
             
-            <h4 data-toc-skip class="date">31.08.2026</h4>
+            <h4 data-toc-skip class="date">10.09.2026</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/project-Gen3sis/R-package/blob/main/vignettes/i_introduction.Rmd" class="external-link"><code>vignettes/i_introduction.Rmd</code></a></small>
       <div class="d-none name"><code>i_introduction.Rmd</code></div>
@@ -119,7 +119,13 @@ files containing the input data and model settings. For this example, we
 have provided environmental data for South American over the Cenozoic.
 To access this dataset, we will define the path to the data contained
 inside the package.</p>
-<pre><code><span><span class="co">#&gt;  [1] "config/config_southamerica_observer.R"      </span></span>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Set the filepath to the location in gen3sis2 files with test data</span></span>
+<span><span class="va">datapath</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"SouthAmerica"</span><span class="op">)</span>, package <span class="op">=</span> <span class="st">"gen3sis2"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># View contents of SouthAmerica folder</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">datapath</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  [1] "config/config_southamerica_observer.R"      </span></span>
 <span><span class="co">#&gt;  [2] "config/config_southamerica.R"               </span></span>
 <span><span class="co">#&gt;  [3] "images/const_cost.png"                      </span></span>
 <span><span class="co">#&gt;  [4] "images/introduction_richness.png"           </span></span>
@@ -141,7 +147,7 @@ inside the package.</p>
 <span><span class="co">#&gt; [20] "space/METADATA.txt"                         </span></span>
 <span><span class="co">#&gt; [21] "space/spaces.rds"                           </span></span>
 <span><span class="co">#&gt; [22] "species_and_spaces/space_t_2.rds"           </span></span>
-<span><span class="co">#&gt; [23] "species_and_spaces/species_t_2.rds"</span></span></code></pre>
+<span><span class="co">#&gt; [23] "species_and_spaces/species_t_2.rds"</span></span></code></pre></div>
 <p>Ultimately, our experiment folder should look like this:</p>
 <table class="table">
 <thead><tr class="header">

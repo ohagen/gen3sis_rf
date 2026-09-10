@@ -59,29 +59,37 @@ provided environmental data for South American over the Cenozoic. To
 access this dataset, we will define the path to the data contained
 inside the package.
 
-    #>  [1] "config/config_southamerica_observer.R"      
-    #>  [2] "config/config_southamerica.R"               
-    #>  [3] "images/const_cost.png"                      
-    #>  [4] "images/introduction_richness.png"           
-    #>  [5] "images/v2varplot.png"                       
-    #>  [6] "images/var_cost.png"                        
-    #>  [7] "input_rasters/area_rasters.grd"             
-    #>  [8] "input_rasters/area_rasters.gri"             
-    #>  [9] "input_rasters/aridity_rasters.grd"          
-    #> [10] "input_rasters/aridity_rasters.gri"          
-    #> [11] "input_rasters/temperature_rasters.grd"      
-    #> [12] "input_rasters/temperature_rasters.gri"      
-    #> [13] "output/sgen3sis.rds"                        
-    #> [14] "space/distances_local/distances_local_0.rds"
-    #> [15] "space/distances_local/distances_local_1.rds"
-    #> [16] "space/distances_local/distances_local_2.rds"
-    #> [17] "space/distances_local/distances_local_3.rds"
-    #> [18] "space/distances_local/distances_local_4.rds"
-    #> [19] "space/distances_local/distances_local_5.rds"
-    #> [20] "space/METADATA.txt"                         
-    #> [21] "space/spaces.rds"                           
-    #> [22] "species_and_spaces/space_t_2.rds"           
-    #> [23] "species_and_spaces/species_t_2.rds"
+``` r
+
+# Set the filepath to the location in gen3sis2 files with test data
+datapath <- system.file(file.path("extdata", "SouthAmerica"), package = "gen3sis2")
+
+# View contents of SouthAmerica folder
+list.files(datapath, recursive = TRUE)
+#>  [1] "config/config_southamerica_observer.R"      
+#>  [2] "config/config_southamerica.R"               
+#>  [3] "images/const_cost.png"                      
+#>  [4] "images/introduction_richness.png"           
+#>  [5] "images/v2varplot.png"                       
+#>  [6] "images/var_cost.png"                        
+#>  [7] "input_rasters/area_rasters.grd"             
+#>  [8] "input_rasters/area_rasters.gri"             
+#>  [9] "input_rasters/aridity_rasters.grd"          
+#> [10] "input_rasters/aridity_rasters.gri"          
+#> [11] "input_rasters/temperature_rasters.grd"      
+#> [12] "input_rasters/temperature_rasters.gri"      
+#> [13] "output/sgen3sis.rds"                        
+#> [14] "space/distances_local/distances_local_0.rds"
+#> [15] "space/distances_local/distances_local_1.rds"
+#> [16] "space/distances_local/distances_local_2.rds"
+#> [17] "space/distances_local/distances_local_3.rds"
+#> [18] "space/distances_local/distances_local_4.rds"
+#> [19] "space/distances_local/distances_local_5.rds"
+#> [20] "space/METADATA.txt"                         
+#> [21] "space/spaces.rds"                           
+#> [22] "species_and_spaces/space_t_2.rds"           
+#> [23] "species_and_spaces/species_t_2.rds"
+```
 
 Ultimately, our experiment folder should look like this:
 
