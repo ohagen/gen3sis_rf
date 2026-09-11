@@ -340,18 +340,27 @@ create_empty_config <- function() {
       "max_number_of_coexisting_species" = NA,
       "end_of_timestep_observer" = function(...) {},
       "trait_names" = list(),
+      "ecological_state_names" = NA,
       "environmental_ranges" = list(),
       "verbose" = FALSE,
       "config_name" = NULL
     ),
     "initialization" = list(
       "initial_abundance" = NULL,
-      "create_ancestor_species" = NULL
+      "create_ancestor_species" = NULL,
+      "initial_ecological_state" = NA
     ),
-    "dispersal" = list("max_dispersal" = Inf, "get_dispersal_values" = NULL),
+    "dispersal" = list(
+      "max_dispersal" = Inf, 
+      "get_dispersal_values" = NULL,
+      "apply_dispersal_trait_inheritance" = NA
+      ),
     "speciation" = list(
       "divergence_threshold" = NULL,
-      "get_divergence_factor" = NULL
+      "get_divergence_factor" = NULL,
+      "get_within_cluster_divergence_factor" = NULL,
+      "get_within_site_divergence_factor" = NA,
+      "apply_within_site_speciation" = NA
     ),
     "trait_evolution" = list("apply_trait_evolution" = NULL),
     "ecology" = list("apply_ecology" = NULL),

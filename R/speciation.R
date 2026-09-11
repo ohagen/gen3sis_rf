@@ -31,6 +31,49 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
   )
 }
 
+#' User-specified function determining the rules for within-cluster divergence of populations. 
+#'
+#' @param species the species of the current time step
+#' @param cells cells occupied by the species part of the meta-population
+#' @param divergence site by site divergence matrix for the meta-population
+#' @param space the space of the current time step
+#' @param config the config of the simulation
+#'
+#' @return a scalar or site by site matrix of within-metapopulation divergence
+#' @keywords user
+#' @export
+get_within_cluster_divergence_factor <- function(species, cells, divergence, space, config){
+  stop("this function documents the user function interface only, do not use it!")
+}
+
+#' User-specified function determining within-site divergence changes
+#'
+#' @param species the species of the current time step
+#' @param cell the focal cell
+#' @param divergence the current divergence within the cell
+#' @param space the space of the current time step
+#' @param config the config of the simulation
+#'
+#' @return a scalar of divergence change per occupied site
+#' @keywords user
+#' @export
+get_within_site_divergence_factor <- function(species, cell, divergence, space, config) {
+  stop("this function documents the user function interface only, do not use it!")
+}
+
+#' User-specified function determining within-site speciation outcome
+#'
+#' @param abundance abundance of the parental population
+#' @param traits traits of the parental population
+#' @param config the config of the simulation
+#'
+#' @return a list of parent and daughter abundance and traits
+#' @keywords user
+#' @export
+apply_within_site_speciation <- function(abundance, traits, config) {
+  stop("this function documents the user function interface only, do not use it!")
+}
+
 #' Orchestrates the speciation of any species alive in the simulation
 #'
 #' @param config the current config object
@@ -85,10 +128,33 @@ loop_speciation <- function(config, data, vars) {
     gen_dist_spi <- decompress_divergence(species[["divergence"]])
     # update genetic distances
     ifactor <- config$gen3sis$speciation$get_divergence_factor(species, clu_geo_spi_ti, data[["space"]], config)
-    gen_dist_spi <- update_divergence(gen_dist_spi, clu_geo_spi_ti, ifactor = ifactor )
+
+    # update the between cluster divergence
+    gen_dist_spi <- update_divergence(
+      gen_dist_spi, 
+      clu_geo_spi_ti, 
+      ifactor = ifactor
+    )
+    
+    # update the within cluster divergence (or homogenisation)
+    if (length(species_presence) > 1) {
+      
+      gen_dist_spi <- update_within_cluster_divergence(
+        divergence = gen_dist_spi,
+        species = species,
+        species_presence = species_presence,
+        cluster_indices = clu_geo_spi_ti,
+        space = data[["space"]],
+        config = config
+      )
+    }
 
     gen_dist_spi <- compress_divergence(gen_dist_spi)
-
+    # Add the within_site divergence back, which was removed in the decompression step
+    # Probably do not have to subset, as the order and cells hasn't changed?
+    gen_dist_spi[["within_site"]] <- species[["divergence"]][["within_site"]][
+      names(gen_dist_spi[["index"]])]
+    
     species[["divergence"]] <- gen_dist_spi
     # scan if any cluster exceeds the threshold
     clu_gen_spi_ti_c <- Tdbscan(
@@ -129,7 +195,6 @@ loop_speciation <- function(config, data, vars) {
 
       #required for proper initialization of new species
       full_gen_dist <- gen_dist_spi
-
       gen_dist_spi$index <- gen_dist_spi$index[clu_gen_spi_ti == 1]
       ue <- unique(gen_dist_spi$index)
       gen_dist_spi$compressed_matrix <- gen_dist_spi$compressed_matrix[
@@ -186,35 +251,214 @@ loop_speciation <- function(config, data, vars) {
 
 #' Updates a given divergence matrix
 #'
-#' @param gen_dist_spi a divergence matrix
-#' @param clu_geo_spi_ti a cluster index
+#' @param divergence a divergence matrix
+#' @param cluster_indices a cluster index
 #' @param ifactor the divergence factor by which the clusters distances are to be increased
+#' @param dfactor the homogenisation factor by which the within cluster divergence distances are to be decreased
 #'
 #' @return an updated divergence matrix
 #' @noRd
 update_divergence <- function(divergence, cluster_indices, ifactor) {
-  #udpate genetic distance
-  clusters <- unique(cluster_indices)
-  if (length(ifactor) == 1) {
+  # update genetic distance
+  if( length(ifactor) == 1 ) {
     # scalar ifactor
-    divergence <- divergence + ifactor
-    dfactor <- 1 + ifactor
+    # first determine if the sites/clusters belong to the same clusters
+    between_clusters <- outer(cluster_indices, cluster_indices, "!=")
+    # only add the ifactor to divergences from different clusters
+    divergence[between_clusters] <-
+      divergence[between_clusters] + ifactor
   } else {
     # matrix ifactor
     divergence <- divergence + ifactor[cluster_indices, cluster_indices]
-    dfactor <- 1
+    # it is assumed that the user already modifies the diagonal of the ifactor matrix
+    # this means that the default is likely 0 meaning no change in divergence within clusters
   }
-  for (i in clusters) {
-    #in case they belong to same clusters, subtract -2 (for the default case), to that final diference is -1 given previous addition!
-    divergence[cluster_indices == i, cluster_indices == i] <-
-      divergence[cluster_indices == i, cluster_indices == i] - dfactor
-  }
-  #setting -1 to zero. Genetic differences can not be negative
+
+  # Genetic differences can not be negative
   divergence[divergence < 0] <- 0
-  ##end updating genetic distance##
+  # end updating genetic distance##
   return(divergence)
 }
 
+#' Updates a given divergence matrix according to within cluster divergence
+#'
+#' @param divergence a divergence matrix
+#' @param species the species of the current time step
+#' @param species_presence character vector of the current occupied sites by the species
+#' @param cluster_indices an index vector indicating the cluster every occupied site is part of
+#' @param space the space of the current time step
+#' @param config the current config object
+#'
+#' @return an updated divergence matrix
+#' @noRd
+update_within_cluster_divergence <- function(
+    divergence,
+    species,
+    species_presence,
+    cluster_indices,
+    space,
+    config
+) {
+  
+  for(cluster in unique(cluster_indices)){
+    
+    cluster_cells <- species_presence[cluster_indices == cluster]
+    # no within meta-population divergence if there's only one population
+    if(length(cluster_cells) < 2){
+      next
+    }
+    
+    cluster_divergence <- divergence[cluster_cells, cluster_cells, drop = FALSE]
+    
+    divergence_update <- config$gen3sis$speciation$
+      get_within_cluster_divergence_factor(
+        species = species,
+        cells = cluster_cells,
+        divergence = cluster_divergence,
+        space = space,
+        config = config
+      )
+    
+    # regardless if the update is a scalar or a matrix addition works
+    cluster_divergence <- cluster_divergence + divergence_update
+    cluster_divergence[cluster_divergence < 0] <- 0
+    diag(cluster_divergence) <- 0
+    
+    divergence[cluster_cells, cluster_cells] <- cluster_divergence
+  }
+  
+  return(divergence)
+}
+
+
+#' Updates within-site divergence according to the divergence update
+#'
+#' @param divergence a vector of within-site divergence per population
+#' @param species the species of the current time step
+#' @param space the space of the current time step
+#' @param config the current config object
+#'
+#' @return an updated within-site divergence vector
+#' @noRd
+update_within_site_divergence <- function(divergence, species, space, config) {
+  for (cell in names(divergence)) {
+    divergence_update <- config$gen3sis$speciation$
+      get_within_site_divergence_factor(
+      species = species,
+      cell = cell,
+      divergence = divergence[cell],
+      space = space,
+      config = config
+    )
+    
+    divergence[cell] <- divergence[cell] + divergence_update
+  }
+  
+  divergence[divergence < 0] <- 0
+  
+  return(divergence)
+}
+
+
+#' Orchestrates within-site speciation
+#'
+#' Only species that existed at the start of the current time step are
+#' evaluated. Species created by spatial or within-site speciation during
+#' this time step are not evaluated again.
+#'
+#' @param config current config object
+#' @param data current data object
+#' @param vars current vars object
+#'
+#' @return updated config, data and vars
+#' @noRd
+loop_within_site_speciation <- function(config, data, vars) {
+  if (!is.function(config$gen3sis$speciation$get_within_site_divergence_factor)) {
+    return(list(config = config, data = data, vars = vars))
+  }
+  
+  if (config$gen3sis$general$verbose >= 3) {
+    cat("entering within-site speciation module\n")
+  }
+  
+  for (spi in seq_len(vars$n_sp)) {
+    species <- data$all_species[[spi]]
+    
+    if (!length(species$abundance)) {
+      next
+    }
+    
+    # User determines divergence accumulation.
+    species$divergence$within_site <- update_within_site_divergence(
+      divergence = species$divergence$within_site,
+      species = species,
+      space = data$space,
+      config = config
+    )
+    
+    speciation_sites <- names(species$divergence$within_site)[
+      species$divergence$within_site > 
+        config$gen3sis$speciation$divergence_threshold
+    ]
+    
+    for (site in speciation_sites) {
+      ecological_states <- NULL
+      
+      if (!is.null(species$ecological_states)) {
+        ecological_states <- species$ecological_states[site, ]
+      }
+      
+      split <- config$gen3sis$speciation$apply_within_site_speciation(
+        abundance = as.numeric(species$abundance[site]),
+        traits = species$traits[site, ],
+        config = config
+      )
+      
+      trait_names <- colnames(species$traits)
+      
+      species$abundance[site] <- split$parent["abundance"]
+      species$traits[site, ] <- split$parent[trait_names]
+      
+      # the offspring will inherit this in "create_species_within_site"
+      species$divergence$within_site[site] <- 0
+      
+      new_id <- vars$n_sp + vars$n_sp_added_ti + 1
+      
+      daughter <- create_species_within_site(
+        parent_species = species,
+        new_id = new_id,
+        site = site,
+        daughter_abundance = split$daughter["abundance"],
+        daughter_traits = split$daughter[trait_names],
+        config = config
+      )
+      
+      data$all_species <- append(data$all_species, list(daughter))
+      
+      data$phy <- rbind(
+        data$phy,
+        data.frame(
+          Ancestor = spi,
+          Descendent = new_id,
+          Speciation.Time = vars$ti,
+          Extinction.Time = vars$ti,
+          Speciation.Type = "Sympatric"
+        )
+      )
+      
+      vars$n_new_sp_ti <- vars$n_new_sp_ti + 1
+      vars$n_sp_added_ti <- vars$n_sp_added_ti + 1
+    }
+    # add species back after the loop (e.g. modifications to traits)
+    data$all_species[[spi]] <- species
+  }
+  
+  if (config$gen3sis$general$verbose >= 3) {
+    cat("exiting within-site speciation module\n")
+  }
+  
+  return(list(config = config, data = data, vars = vars))
+}
 
 #' Updates the total number of species
 #'

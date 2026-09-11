@@ -5,12 +5,14 @@
 \title{Allows the user to define the ecological consequences for species within each site,
 defining thus species survival and abundance}
 \usage{
-apply_ecology(abundance, traits, local_environment, config)
+apply_ecology(abundance, traits, ecological_states, local_environment, config)
 }
 \arguments{
 \item{abundance}{a named vector of abundances with one abundance value per species}
 
 \item{traits}{a named matrix containing the species traits, one row per species}
+
+\item{ecological_states}{a named matrix containing the species ecological states, one row per species}
 
 \item{local_environment}{the environmental values for the given site}
 

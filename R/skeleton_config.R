@@ -61,6 +61,10 @@ max_number_of_coexisting_species = 2500
 # a "dispersal" trait is implicitly added in any case
 trait_names = c("dispersal")
 
+# names of population-level ecological states returned by apply_ecology.
+# use NA if no ecological states are required.
+ecological_state_names <- NA
+
 # ranges to scale the input environments with:
 # not listed variable:         no scaling takes place
 # listed, set to NA:           the environmental variable will be scaled from [min, max] to [0, 1]
@@ -108,6 +112,9 @@ create_ancestor_species <- function(space, config) {
  stop("create the initial species here")
 }
 
+# initial values for the user-specified ecological state(s). Relevant during setup
+# and later during dispersal.
+initial_ecological_state <- NA
 
 #-----------------#
 #### Dispersal ####
@@ -135,6 +142,11 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
   stop("calculate divergence factor here")
 }
 
+# factor by which the divergence within geographically isolated clusters is either increased or decreased.
+# can return a scalar (e.g. -1 as the default) or a matrix.
+get_within_cluster_divergence_factor <- function(species, species_presence, cluster_indices, divergence, space, config){
+  stop("calculate within-cluster divergence here")
+}
 
 #-----------------------#
 #### Trait Evolution ####
@@ -154,8 +166,8 @@ apply_trait_evolution <- function(species, cluster_indices, space, config) {
 # and/or who survives for each sites.
 # returns a vector of abundances.
 # set the abundance to 0 for every species supposed to die.
-apply_ecology <- function(abundance, traits, environment, config) {
-  stop("calculate species abundances and deaths here")
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
+  stop("calculate species abundances and ecological states here")
 }
 
 

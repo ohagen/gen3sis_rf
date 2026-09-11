@@ -229,6 +229,7 @@ test_that("verify_config: config with missing values", {
     "initialization\n",
     "- initial_abundance\n",
     "- create_ancestor_species\n",
+    "- initial_ecological_state\n",
     "dispersal\n",
     "- max_dispersal\n",
     "speciation\n",

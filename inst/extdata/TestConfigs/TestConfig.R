@@ -13,6 +13,8 @@ duration <- list(
 max_number_of_species <- 20000
 max_number_of_coexisting_species <- 20000
 initial_abundance <- 10
+ecological_state_names <- "frequency_dependence"
+initial_ecological_state <- c("frequency_dependence" = 1)
 
 # ecological local equilibria variable J*
 get_J <- function(a_ff, a_fh, K_f) {
@@ -124,6 +126,8 @@ create_ancestor_species <- function(space, config) {
       "temperature"
     ]
     new_species[[i]]$traits[, "t_range"] <- 0.4
+    new_species[[i]]$ecological_states[, ecological_state_names] <- 
+      initial_ecological_state[ecological_state_names]
     #plot_species_presence(new_species[[i]], space)
   }
   return(new_species)
@@ -155,6 +159,18 @@ divergence_threshold <- 1 # between 10 and 50 ? as 0.1 to 0.5 Myrs or 100 - 500 
 # adds a value of 1 to each geographic population cluster
 get_divergence_factor <- function(species, cluster_indices, space, config) {
   return(1)
+}
+
+# Set within-cluster divergence to decay by 1 per time step (as was the default prior)
+# note that scale time is not present here as we will have to add this later
+get_within_cluster_divergence_factor <- function(
+    species,
+    cells,
+    divergence,
+    space,
+    config
+) {
+  -1
 }
 
 #-----------------------#
@@ -231,12 +247,22 @@ apply_trait_evolution <- function(species, cluster_indices, space, config) {
 apply_ecology <- function(
   abundance,
   traits,
-  space,
+  ecological_states,
+  local_environment,
   config,
   abundance_scale = 10,
   abundance_threshold = 8
 ) {
-  return(abundance)
+  
+  ecological_states["frequency_dependence", ] <-
+    runif(n = length(abundance), min = 0, max = 1)
+  
+  return(
+    rbind(
+      abundance = abundance,
+      ecological_states
+    )
+  )
 }
 
 #------------------------------#

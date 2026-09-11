@@ -19,7 +19,7 @@ Check if the used time unit is accepted
 \dontrun{
   # return TRUE
   time_unit_check("yr")
-  time_unit_check("Kyr")
+  time_unit_check("kyr")
   time_unit_check("Myr")
   time_unit_check("Gyr")
   time_unit_check("timestep")

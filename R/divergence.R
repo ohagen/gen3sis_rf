@@ -83,7 +83,8 @@ limit_divergence_to_cells <- function(divergence, cells) {
 
   return(invisible(list(
     "index" = new_index,
-    "compressed_matrix" = new_compressed_matrix
+    "compressed_matrix" = new_compressed_matrix,
+    "within_site" = divergence[["within_site"]][cells]
   )))
 }
 
@@ -98,7 +99,8 @@ consolidate_divergence <- function(divergence) {
   if (length(divergence[["index"]]) == 0) {
     return(invisible(list(
       index = integer(),
-      compressed_matrix = matrix(0, 0, 0, dimnames = list(NULL, NULL))
+      compressed_matrix = matrix(0, 0, 0, dimnames = list(NULL, NULL)),
+      within_site = numeric()
     )))
   }
 
@@ -109,6 +111,7 @@ consolidate_divergence <- function(divergence) {
 
   return(invisible(list(
     "index" = new_index,
-    "compressed_matrix" = new_compressed[["compressed_matrix"]]
+    "compressed_matrix" = new_compressed[["compressed_matrix"]],
+    "within_site" = divergence[["within_site"]][names(new_index)]
   )))
 }

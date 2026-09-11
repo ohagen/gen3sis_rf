@@ -22,12 +22,11 @@
 # set the random seed for the simulation
 random_seed <- 6
 
-duration <- list(
-  from = NA,
-  to = NA,
-  by = NA,
-  unit = "timestep"
-)
+# set the starting time step or leave NA to use the earliest/highest time-step
+start_time <- NA
+
+# set the end time step or leave as NA to use the latest/lowest time-step (0)
+end_time <- NA
 
 # maximum total number of species in the simulation before it is aborted
 max_number_of_species <- 50000
@@ -40,9 +39,9 @@ trait_names <- c("temp", "dispersal")
 
 # ranges to scale the input environments with:
 environmental_ranges <- list(
-  "temp" = NA,
-  "area" = NA,
-  "arid" = NA
+  "temp" = c(-45, 55),
+  "area" = c(2361.5, 12923.4),
+  "arid" = c(1, 0.5)
 )
 
 ######################################
@@ -52,6 +51,19 @@ environmental_ranges <- list(
 # a place to inspect the internal state of the simulation and collect additional information if desired
 end_of_timestep_observer <- function(data, vars, config) {
   save_species()
+  plot_richness(data$all_species, data$space)
+  # example 1 plot over simulation
+  # par(mfrow=c(2,3))
+  # plot_raster_single(data$space$environment[,"temp"], data$space, "temp", NA)
+  # plot_raster_single(data$space$environment[,"arid"], data$space, "arid", NA)
+  # plot_raster_single(data$space$environment[,"area"], data$space, "area", NA)
+  # plot_richness(data$all_species, data$space)
+  # plot_species_presence(data$all_species[[1]], data$space)
+  # plot(0,type='n',axes=FALSE,ann=FALSE)
+  # mtext("STATUS",1)
+  # example 2 plot over simulations saving plots
+  # plot_richness(data$all_species, data$space)
+  # plot_space(data$space)
 }
 
 ######################################
@@ -120,9 +132,7 @@ get_divergence_factor <- function(species, cluster_indices, space, config) {
 ######################################
 
 # mutate the traits of a species and return the new traits matrix
-
 apply_trait_evolution <- function(species, cluster_indices, space, config) {
- 
 
   trait_evolutionary_power <- 0.001
   traits <- species[["traits"]]
@@ -156,18 +166,18 @@ apply_trait_evolution <- function(species, cluster_indices, space, config) {
 # returns a vector of abundances
 # set the abundance to 0 for every species supposed to die
 
-apply_ecology <- function(abundance, traits, space, config) {
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
   abundance_scale <- 10
   abundance_threshold <- 1
   #abundance threshold
   survive <- abundance >= abundance_threshold
   abundance[!survive] <- 0
-  abundance <- ((1 - abs(traits[, "temp"] - space[, "temp"])) *
+  abundance <- ((1 - abs(traits[, "temp"] - local_environment[, "temp"])) *
     abundance_scale) *
     as.numeric(survive)
   #abundance threshold
   abundance[abundance < abundance_threshold] <- 0
-  k <- ((space[, "area"] * (space[, "arid"] + 0.1) * (space[, "temp"] + 0.1)) *
+  k <- ((local_environment[, "area"] * (local_environment[, "arid"] + 0.1) * (local_environment[, "temp"] + 0.1)) *
     abundance_scale^2)
   total_ab <- sum(abundance)
   subtract <- total_ab - k

@@ -197,11 +197,11 @@ apply_evolution <- function(species, cluster_indices, space, config) {
 # who survives for each sites.
 # returns a vector of abundances.
 # set the abundance to 0 for every species supposed to die.
-apply_ecology <- function(abundance, traits, environment, config) {
+apply_ecology <- function(abundance, traits, ecological_states, local_environment, config) {
   if (length(abundance) > 1) {
     spp_survival_change <- sapply(names(abundance), function(sp) {
       optimal_temperature <- traits[sp, "optimal_temperature"]
-      current_temperature <- environment[, "temperature"]
+      current_temperature <- local_environment[, "temperature"]
       temp_distance <- abs(optimal_temperature - current_temperature)
       survival_baseline <- 0.1 # change of survival on the temperature limite
       survival_change <- survival_baseline^(temp_distance /
@@ -235,7 +235,7 @@ apply_ecology <- function(abundance, traits, environment, config) {
     }
   } else {
     optimal_temperature <- traits[, "optimal_temperature"]
-    current_temperature <- environment[, "temperature"]
+    current_temperature <- local_environment[, "temperature"]
     temp_distance <- abs(optimal_temperature - current_temperature)
 
     survival_baseline <- 0.25 # change of survival on the temperature limite

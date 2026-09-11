@@ -713,14 +713,11 @@ get_species_subset <- function(species_list, site_vector, trim_sites = FALSE) {
   species_subset <- Filter(\(sp) sp$id %in% sp_subset, species_list)
 
   if (trim_sites) {
+    # the old code didn't subset the divergence matrix even though there's a function
+    # that can directly be used to subset the species object to certain cells
     species_subset <- lapply(species_subset, function(sp) {
-      sp$abundance <- sp$abundance[names(sp$abundance) %in% site_vector]
-      sp$traits <- sp$traits[
-        rownames(sp$traits) %in% site_vector,
-        ,
-        drop = FALSE
-      ]
-      sp
+      retained_sites <- intersect(names(sp[["abundance"]]), site_vector)
+      limit_species_to_cells(sp, retained_sites)
     })
   }
 

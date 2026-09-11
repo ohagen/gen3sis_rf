@@ -7,7 +7,7 @@
 create_spaces(
   env = list(NA),
   type = "raster",
-  duration = list(from = NA, to = NA, by = NA, unit = "Ma"),
+  duration = list(from = NA, to = NA, by = NA, unit = "Myr"),
   area = list(extent = NA, total_area = NA, n_sites = NA, unit = "km2"),
   crs = "EPSG:4326",
   cost_function = list(NA),
