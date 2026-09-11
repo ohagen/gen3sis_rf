@@ -84,118 +84,74 @@ setup_variables <- function(config, data, vars) {
   # Values that are min/max clamped should be printed, possibly as warnings (e.g. start time outside spaces time window).
   # Should we change these conditionals below?
 
-
-  zero_base_ts <- (length(data$inputs$timesteps) - 1):0
-
-  # If config's duration$by is problematic, it is setted to 'timestep'.
-  # It prevents any calculation and forces the simulation to overwrite config's duration$from and duration$to
-  # to the earliest and latest available space's time-step.
-  if (is.na(config$gen3sis$general$duration$by) || is.character(config$gen3sis$general$duration$to)) {
-    config$gen3sis$general$duration$by <- "timestep"
-    message(
-      "Config's durantion$by must be numerical. Changing config duration$by to 'timestep'. Assuming spaces' time-step."
-    )
+  # TODO
+  # Não atualizar as informações da config
+  # Armazenar o start_timestep e o end_timestep inside other place 
+  
+  # Replace NA's and assume spaces' time information
+  if (is.na(config$gen3sis$general$duration$from)) {
+    config$gen3sis$general$duration$from <- data$inputs$duration$from
   } 
 
-  if (is.na(config$gen3sis$general$duration$from) || config$gen3sis$general$duration$unit == "timestep") {
-    # start at the earliest available time-step
-    config$gen3sis$general$duration$from <- length(data[["inputs"]][[
-      "timesteps"
-    ]]) -
-      1
-  } else if (is.character(config$gen3sis$general$duration$from)) {
-    # warns the user and ignores the string, starting at the earliest time-step
-    message(
-      "Config's durantion$from must be numerical. Starting simulation from the first time-step."
-    )
-    config$gen3sis$general$duration$from <- length(data[["inputs"]][[
-      "timesteps"
-    ]]) -
-      1
-  } else if (is.numeric(config$gen3sis$general$duration$from)) {
-    # assumes that the numeric value expresses a "date", not a time-step
-    # e.g.: -2000 means 2000 time units in the past
-
-    # fetch the start_time
-    # convert it from the config time unit to the space time unit
-
-    start_time <- conv_unit(
-      config$gen3sis$general$duration$from,
-      config$gen3sis$general$duration$unit,
-      data$inputs$duration$unit
-    )
-
-    # gets the absolute time for each timesteps in the space
-    # e.g.: {"-10Myr", "-5Myr", "0Myr"} -> {-10, -5, 0}
-    ts_times <- gsub(data$inputs$duration$unit, "", data$inputs$timesteps) |>
-      as.numeric()
-    # gets which time-step is closer in time to the start_time
-    time_distance <- abs(start_time - ts_times)
-    eq_index <- ifelse(
-      length(which(time_distance == min(time_distance))) > 1,
-      which(time_distance == min(time_distance))[1],
-      which(time_distance == min(time_distance))
-    )
-
-    # sets the start_time as the closest time-step in the time
-    config$gen3sis$general$duration$from <- zero_base_ts[which(
-      data$inputs$timesteps == data$inputs$timesteps[eq_index]
-    )]
-    message(
-      "Simulation will start at timestep ",
-      config$gen3sis$general$duration$from,
-      ", ",
-      data$inputs$timesteps[eq_index]
-    )
+  if (is.na(config$gen3sis$general$duration$to)) {
+    config$gen3sis$general$duration$to <- data$inputs$duration$to
   }
 
-  if (is.na(config$gen3sis$general$duration$to) || config$gen3sis$general$duration$unit == "timestep") {
-    # ends at the latest available time-step
-    config$gen3sis$general$duration$to <- 0
-  } else if (is.character(config$gen3sis$general$duration$to)) {
-    # ignores the string, warns the user and ends at the latest available time-step
-    config$gen3sis$general$duration$to <- 0
-    message(
-      "Config's durantion$to must be numerical. Ending simulation at the last time-step."
-    )
-  } else if (is.numeric(config$gen3sis$general$duration$to)) {
-    # fetches the end_time and converts from the config time unit to the space time unit
-    end_time <- conv_unit(
-      config$gen3sis$general$duration$to,
-      config$gen3sis$general$duration$unit,
-      data$inputs$duration$unit
-    )
-
-    # gets the absolute time for each timesteps in the space
-    # e.g.: {"-10Myr", "-5Myr", "0Myr"} -> {-10, -5, 0}
-    ts_times <- gsub(data$inputs$duration$unit, "", data$inputs$timesteps) |>
-      as.numeric()
-
-    # gets the closes time-step in time
-    time_distance <- abs(end_time - ts_times)
-    eq_index <- ifelse(
-      length(which(time_distance == min(time_distance))) > 1,
-      which(time_distance == min(time_distance))[1],
-      which(time_distance == min(time_distance))
-    )
-
-    config$gen3sis$general$duration$to <- zero_base_ts[which(
-      data$inputs$timesteps == data$inputs$timesteps[eq_index]
-    )]
-    message(
-      "Simulation will end at timestep ",
-      config$gen3sis$general$duration$to,
-      ", ",
-      data$inputs$timesteps[eq_index]
-    )
+  if (is.na(config$gen3sis$general$duration$by)) {
+    config$gen3sis$general$duration$by <- data$inputs$duration$by
   }
+
+  if (is.na(config$gen3sis$general$duration$unit)) {
+    config$gen3sis$general$duration$unit <- data$inputs$duration$unit
+  }
+
+  # Check if the timeframe match and updates the config duration to harmonize with spaces' config
+  converted_config_duration <- check_time_match(config$gen3sis$general$duration, data$inputs$duration)
+
+  # extract the implicit timesteps defined in the config
+  implicit_config_ts <- paste0(
+    seq(
+      converted_config_duration$from,
+      converted_config_duration$to,
+      converted_config_duration$by
+    ),
+    converted_config_duration$unit
+  )
+
+  if(!all(implicit_config_ts %in% data$inputs$timesteps)){
+    stop("Config's duration implies in non-existent time-steps.")
+  }
+
+  included_ts <- data$inputs$timesteps[which(data$inputs$timesteps %in% implicit_config_ts)] # which timesteps from the config are present in spaces 
+
+  if(length(included_ts) == 0){
+    stop("Impossible to subset spaces' time-steps. Check your config's duration.")
+  }
+
+  zero_base_ts <- (length(data$inputs$timesteps) - 1):0 # actual timesteps ordered zero-base for the entire spaces
+  zero_base_ts_included <- zero_base_ts[match(included_ts, data$inputs$timesteps)] # filtered given the config's duration
+ 
+  # Update config's duration otherwise things break
+  vars$start_timestep <- zero_base_ts_included[[1]]
+  vars$end_timestep <- zero_base_ts_included[[length(zero_base_ts_included)]]
+
+  text_message <- paste0(
+    "Simulation will start at time-step ",
+    vars$start_timestep, " (", # tell the timestep index
+    data$inputs$timesteps[match(vars$start_timestep, zero_base_ts)], ")", # tell the timestep name with the unit
+    " and end at time-step ",
+    vars$end_timestep, " (", # tell the timestep index
+    data$inputs$timesteps[match(vars$end_timestep, zero_base_ts)], ")\n" # tell the timestep name with the unit
+  )
+  
+  message(text_message)
 
   # put in start time for create_space
-  vars$ti <- config$gen3sis$general$duration$from
+  vars$ti <- vars$start_timestep
 
   # flag
   vars$flag <- "OK"
-
+  vars$steps <- zero_base_ts_included
 
   return(list(config = config, data = data, vars = vars))
 }
@@ -250,10 +206,11 @@ init_attribute_ancestor_distribution <- function(config, data, vars) {
   data$phy <- data.frame(
     "Ancestor" = rep(1, n_sp), # c(1:n_sp),
     "Descendent" = c(1:n_sp),
-    "Speciation.Time" = config$gen3sis$general$duration$from,
-    "Extinction.Time" = rep(config$gen3sis$general$duration$from, n_sp),
+    "Speciation.Time" = vars$start_timestep,
+    "Extinction.Time" = rep(vars$start_timestep, n_sp),
     "Speciation.Type" = c("ROOT", rep("GENETIC", n_sp - 1)) # "ROOT"
   )
+  
   return(list(config = config, data = data, vars = vars))
 }
 
@@ -268,15 +225,7 @@ init_attribute_ancestor_distribution <- function(config, data, vars) {
 #' @noRd
 init_simulation <- function(config, data, vars) {
   # internal variables
-
-  # sets the 1 by 1 time-steps for simulation
-  # config$gen3sis$general$duration$from -> marks the beginning of the simulation
-  # config$gen3sis$general$duration$to -> marks the end of the simulation
-  # both are calculated in setup_variables()
-  # config's duration$by is not important here, because simulation will follow spaces' time-step
-  # user is always warned if config's and spaces' duration$by are different
-  # the simulation does not automatically correct or scale anything  
-  steps <- (config$gen3sis$general$duration$from:config$gen3sis$general$duration$to)
+  steps <- vars$steps
 
   # create matrix for turnover
   data$turnover <- matrix(
@@ -304,7 +253,8 @@ init_simulation <- function(config, data, vars) {
   #..... add the first species distribution at t0 (t_start)....
   geo_richness[
     rownames(data[["space"]][["coordinates"]]),
-    as.character(config$gen3sis$general$duration$from)
+    #as.character(config$gen3sis$general$duration$from)
+    as.character(vars$start_timestep)
   ] <- get_geo_richness(data$all_species, data[["space"]])
 
   data$geo_richness <- geo_richness

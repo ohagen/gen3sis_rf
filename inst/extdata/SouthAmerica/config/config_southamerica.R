@@ -26,7 +26,7 @@ duration <- list(
   from = NA,
   to = NA,
   by = NA,
-  unit = "timestep"
+  unit = "Myr"
 )
 
 # maximum total number of species in the simulation before it is aborted

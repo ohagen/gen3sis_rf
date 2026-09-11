@@ -150,8 +150,6 @@ run_simulation <- function(
   val <- setup_inputs(val$config, val$data, val$vars)
   val <- setup_variables(val$config, val$data, val$vars)
   val <- setup_space(val$config, val$data, val$vars)
-  # Check the time matching between config and space
-  check_time_match(val$config$gen3sis$general$duration, val$data$inputs$duration)
 
   # conceptually the result of the initialization is the "end" of a previous timestep
   val$data$space$id <- val$data$space$id + 1
@@ -177,26 +175,30 @@ run_simulation <- function(
   ######## Call observer to plot or save #######
   #--------------------------------------------#
 
+  # val$config$gen3sis$general$duration$from -> val$vars$start_timestep
+
   ### when to call the observer
   if (is.na(call_observer)) {
     save_steps <- c(
-      val$config$gen3sis$general$duration$from,
-      val$config$gen3sis$general$duration$to
+      val$vars$start_timestep,
+      val$vars$end_timestep
     )
   } else if (call_observer == "all") {
-    save_steps <- val$config$gen3sis$general$duration$from:val$config$gen3sis$general$duration$to
+    save_steps <- val$vars$steps
   } else {
+    # TODO we should just specify which timesteps to call the observer
     steps <- as.integer(call_observer) + 2
     save_steps <- ceiling(seq(
-      val$config$gen3sis$general$duration$from,
-      val$config$gen3sis$general$duration$to,
+      val$vars$start_timestep,
+      val$vars$end_timestep,
       length.out = steps
     ))
   }
   # # when to save the species data. +1 is added to tf for matters of timeps jumps between ti and tn
   val$vars$save_steps <- save_steps
 
-  val$vars$steps <- val$config$gen3sis$general$duration$from:val$config$gen3sis$general$duration$to
+  #val$vars$steps <- val$config$gen3sis$general$duration$from:val$config$gen3sis$general$duration$to
+  
   #
   #
   #

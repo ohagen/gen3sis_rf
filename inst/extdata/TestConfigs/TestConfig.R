@@ -7,8 +7,8 @@ random_seed <- comb_vector$seed #28015
 duration <- list(
   from = NA,
   to = NA,
-  by = 1,
-  unit = "timestep"
+  by = NA,
+  unit = "Myr"
 )
 max_number_of_species <- 20000
 max_number_of_coexisting_species <- 20000

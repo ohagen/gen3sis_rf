@@ -217,44 +217,64 @@ conv_unit <- function(x, from, to) {
 #' @returns NULL
 #' @noRd
 check_time_match <- function(config_duration, space_duration){
-  if(config_duration$unit != "timestep"){
-    if(config_duration$unit != space_duration$unit) {
-      text_warn <- paste0(
-        "--- TIME-STEP MISMATCH ---\n  ",
-          "Config's time-steps are set as ", 
-          config_duration$by, " ",
-          config_duration$unit, ", ",
-          "but space's time-steps are set as ",
-          space_duration$by, " ",
-          space_duration$unit, ".\n  ",
-          "Did you consider time-scaling in your config?\n  ",
-          "Read more about time-scaling in the respective vignette."
-        )
-      warning(text_warn)
-      message(text_warn)
-    }
+  # preliminary tests
+  is_numerical <- sapply(config_duration[c("from","to","by")], function(x){
+    is.numeric(x)
+  }) |> all()
+  
+  if(!is_numerical){
+    stop("Config's duration$from, duration$to, and duration$by must be numerical.")
+  }
 
-    time_proportion <- config_duration$by/conv_unit(space_duration$by, space_duration$unit, config_duration$unit)
+  if(config_duration$by <= 0) {
+    stop("Config's duration$by must be positive.")
+  } 
+  
+  # harmonize time units
+  if(xor(config_duration$unit == "timestep", space_duration$unit == "timestep")){
+    stop("Cannot interpretate timeframe. Both config's and spaces' duration$unit must be 'timestep'.")
+  } 
 
-    if(time_proportion != 1){
-      text_warn <- paste0(
-          "--- TIME-STEP MISMATCH ---\n  ",
-          "Config's time-steps are ",
-          time_proportion, " ",
-          "times space's time-steps.\n  ",
-          "Did you consider time-scaling in your config?\n  ",
-          "Read more about time-scaling in the respective vignette."
-        )
-      message(text_warn)
-      warning(text_warn)
-    }
-  } else {
+  if (config_duration$unit != space_duration$unit){
+    warning("Config's and spaces' duration$by are different. Config's duration by will be converted.")
+    config_duration[c("from","to","by")] <- lapply(config_duration[c("from","to","by")], function(x){
+      conv_unit(x, config_duration$unit, space_duration$unit)
+    })
+    config_duration$unit <- space_duration$unit
+  }
+
+  # check temporal bonds
+  if(config_duration$by > (config_duration$to-config_duration$from)){
+    stop("Config's duration$by cannot be greater than total config's time range.")
+  }
+
+  if(any(
+    config_duration$from < space_duration$from,
+    config_duration$to > space_duration$to,
+    config_duration$from > config_duration$to
+  )){
+    stop("Config's temporal resolution is out of bounds. Check config's duration.")
+  }
+
+  if(config_duration$by < space_duration$by){
+    stop("Cannot subset spaces' timesteps. Config's duration$by must be equal or greater than spaces' duration$by.")
+  }
+  
+  # computes time proportion
+  time_proportion <- config_duration$by/space_duration$by
+
+  if(time_proportion != 1){
     text_warn <- paste0(
-      "  Config time unit is set to 'timestep'.\n  ",
-        "The simulation will fully assume spaces duration.\n  ",
+        "--- TIME-STEP MISMATCH ---\n  ",
+        "Config's duration$by is ",
+        time_proportion, " ",
+        "times the spaces' duration$by.\n  ",
+        "Spaces' time-steps will be subsetted.\n  ",
         "Read more about time-scaling in the respective vignette."
       )
-    warning(text_warn)
     message(text_warn)
+    warning(text_warn)
   }
+
+  return(config_duration)
 }
